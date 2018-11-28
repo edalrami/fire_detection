@@ -91,6 +91,13 @@ ggcorrplot(corr)
 
 
 # ADD MODELS & STUFF
+library("leaps")
+colnames(dataset)
+allSubset = regsubsets(DC ~., data = dataset, method = "exhaustive")
+(s1 = summary(allSubset))
+
+s1$adjr2
+coef(allSubset, 6)
 ```
 
 
