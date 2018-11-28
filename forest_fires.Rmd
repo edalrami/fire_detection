@@ -1,0 +1,111 @@
+---
+title: "Predicting Burn Area by Forest Fires"
+author: "Darshil Desai, Edwin Ramirez"
+date: "November 27, 2018"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+---
+
+# 2.1 Overview
+
+# 2.2 Introduction
+Our project will focus on the forest fires dataset sourced from the UCI Machine Learning Repository. Considering the recent forest fires in the state of California, we beleive this project to be of great relevance as it allows us to harness the power of predictive analytics to forsee the expected forest area to burn given a set of metereological variables
+
+# 2.3 Dataset
+Lets take a look at our dataset
+
+## Overview
+``` {r read_data}
+#reading in the csv file
+dataset <- read.csv('forestfires.csv') 
+
+#displaying first 5 rows
+head(dataset)
+
+# Lets get a brief summary of our dataset
+summary(dataset)
+```
+
+## Features
+Our dataset comprises of the following 13 variables: 
+
+1 & 2. X,Y : coordinates within the Montesinho park. Ranges from 1 to 9 <br>
+3. month: month when the fire frst occured <br>
+4: day: day of the given month when the fire occured <br>
+5: FFMC (Fine Fuel Moisture Code) : a numeric rating of the moisture content of litter and other cured fine fuels. This code is an indicator of the relative ease of ignition and the flammability of fine fuel. <br>
+6: DMC (Duff Moisture Code): A numeric rating of the average moisture content of loosely compacted organic layers of moderate depth. This code gives an indication of fuel consumption in moderate duff layers and medium-size woody material.[^1] <br>
+7. DC (Drought Code):  A numeric rating of the average moisture content of deep, compact organic layers. This code is a useful indicator of seasonal drought effects on forest fuels and the amount of smoldering in deep duff layers and large logs. [^2] <br>
+8. ISI (Initial Spread Index): expected rate of fire  <br>
+9. temperature <br>
+10: RH (relative humidity) <br>
+11: wind: wind speed <br>
+12: rain <br>
+13: the burned area of the forest. This variable will be our response variable and we will try and establish a linear relationship between the myriad of weather and meterological factors of the forest experiencing fires and the future expected area burn.  <br>
+
+## Data Cleaning
+Before we pursue our analysis it is vital that we remove, reorganize and convert our data as necessary. We will proceed as follows: 
+
+1. Represent month & day features into numerical formats to be used with the model
+2. Remove redunant data (PENDING PENDING PENDING)
+3. Normalize our dataset. Since our features are on different scales, we believe it neccassary to normalize our features so as to bring them down to one common scale between the range of 0 and 1
+
+``` {r cleaning}
+
+#1  Converting text datetime data to numbers
+month_nums <-  c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 
+                 'nov', 'dec')
+
+all_months <- c()
+for (y in dataset$month) {
+  all_months <- c(all_months,which(month_nums==y))
+}
+#attaching the months column to the dataset
+dataset <- cbind(dataset, all_months)
+
+#2. Removing redundant data
+  #1. dropping the original months column
+  #2. dropping the "day" column
+dataset <- dataset[,-match(c("month","day"),names(dataset))]
+dataset1 <- dataset
+
+#3. Normalizing our dataset
+dataset <- as.data.frame(apply(dataset, 2, function(x) (x - min(x))/(max(x)-min(x))))
+str(dataset)
+```
+
+# 2.4 Methodology
+We will further our analys as follows: 
+1. In order to create a linear relationship between our response variable (area burned down) and the other variables we need to first establish a reasonable correlation between our predictor variables and also with the response variable. 
+2. We will fit our model in different ways so as to come up with the best set of features to accurately predict area burned down through fires
+
+``` {r analysis}
+library(ggcorrplot)
+
+#1. Visualizing our correlations 
+corr <- cor(dataset1)
+ggcorrplot(corr)
+
+
+
+# ADD MODELS & STUFF
+```
+
+
+
+Footnotes: 
+
+[^1]: http://cwfis.cfs.nrcan.gc.ca/background/summary/fwi <br>
+[^2]: http://cwfis.cfs.nrcan.gc.ca/background/summary/fwi 
+
+
+
+
+
+
+
+
+
+
