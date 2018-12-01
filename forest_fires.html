@@ -1752,30 +1752,31 @@ plot(new_model, 2)</code></pre>
 ## Multiple R-squared:  0.6613, Adjusted R-squared:  0.6573 
 ## F-statistic:   166 on 6 and 510 DF,  p-value: &lt; 2.2e-16</code></pre>
 <p>However, stepwise doesn’t remove all redundant features, and when we look closer at a summary of our model we can see that the p-value of <code>month</code> is above the significance of 0.05. So we can remove this feature from our model.</p>
-<pre class="r"><code>summary(lm(trans ~ FFMC + temp + RH + wind, data = fire))</code></pre>
+<pre class="r"><code>summary(lm(trans ~ month + FFMC + temp + RH + wind, data = fire))</code></pre>
 <pre><code>## 
 ## Call:
-## lm(formula = trans ~ FFMC + temp + RH + wind, data = fire)
+## lm(formula = trans ~ month + FFMC + temp + RH + wind, data = fire)
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -1.0066 -0.1961 -0.0190  0.1853  3.5920 
+## -1.0191 -0.1953 -0.0176  0.1843  3.5871 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept) -5.709367   0.274937 -20.766  &lt; 2e-16 ***
-## FFMC         0.077063   0.003016  25.547  &lt; 2e-16 ***
-## temp         0.021976   0.003303   6.653 7.39e-11 ***
-## RH           0.005309   0.001082   4.906 1.25e-06 ***
-## wind         0.034635   0.008585   4.034 6.31e-05 ***
+## (Intercept) -5.520191   0.289401 -19.075  &lt; 2e-16 ***
+## month       -0.040060   0.019666  -2.037 0.042161 *  
+## FFMC         0.076241   0.003034  25.128  &lt; 2e-16 ***
+## temp         0.021578   0.003299   6.541 1.48e-10 ***
+## RH           0.005267   0.001079   4.882 1.41e-06 ***
+## wind         0.031918   0.008662   3.685 0.000253 ***
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 0.3387 on 512 degrees of freedom
-## Multiple R-squared:  0.6562, Adjusted R-squared:  0.6535 
-## F-statistic: 244.3 on 4 and 512 DF,  p-value: &lt; 2.2e-16</code></pre>
+## Residual standard error: 0.3377 on 511 degrees of freedom
+## Multiple R-squared:  0.6589, Adjusted R-squared:  0.6556 
+## F-statistic: 197.4 on 5 and 511 DF,  p-value: &lt; 2.2e-16</code></pre>
 <pre class="r"><code>#displaying first 5 rows</code></pre>
-<p>Once removed we can finally see the results of our model, where all p-values are considerably low. Therefore the best features for our model include <code>FFMC</code>, <code>temp</code>, <code>RH</code>, and <code>wind</code>. Our model has a r-squared value of 0.66, inidcating that our model would likely be moderately useful in predicting the initial rate of spread of a fire.</p>
+<p>Once removed we can finally see the results of our model, where all p-values are considerably low. Therefore the best features for our model include <code>month</code>, <code>FFMC</code>, <code>temp</code>, <code>RH</code>, and <code>wind</code>. Our model has a r-squared value of 0.66, inidcating that our model would likely be moderately useful in predicting the initial rate of spread of a fire.</p>
 </div>
 <div id="brief-summary" class="section level2">
 <h2>Brief Summary</h2>

@@ -141,10 +141,10 @@ summary(lm(trans ~ month + FFMC + DC + temp + RH + wind, data = fire))
 However, stepwise doesn't remove all redundant features, and when we look closer at a summary of our model we can see that the p-value of `month` is above the significance of 0.05. So we can remove this feature from our model.
 
 ```{r}
-summary(lm(trans ~ FFMC + temp + RH + wind, data = fire))
+summary(lm(trans ~ month + FFMC + temp + RH + wind, data = fire))
 #displaying first 5 rows
 ```
- Once removed we can finally see the results of our model, where all p-values are considerably low. Therefore the best features for our model include `FFMC`, `temp`, `RH`, and `wind`. Our model has a r-squared value of 0.66, inidcating that our model would likely be moderately useful in predicting the initial rate of spread of a fire.   
+ Once removed we can finally see the results of our model, where all p-values are considerably low. Therefore the best features for our model include `month`, `FFMC`, `temp`, `RH`, and `wind`. Our model has a r-squared value of 0.66, inidcating that our model would likely be moderately useful in predicting the initial rate of spread of a fire.   
  
 
 ## Brief Summary 
