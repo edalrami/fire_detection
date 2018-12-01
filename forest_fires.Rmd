@@ -12,7 +12,7 @@ output:
 # 2.1 Abstract
 
 # 2.2 Introduction
-Our project will focus on the forest fires dataset sourced from the UCI Machine Learning Repository. Considering the recent forest fires in the state of California, we beleive this project to be of great relevance as it allows us to harness the power of predictive analytics to forsee the expected forest area to burn given a set of metereological variables
+Our project will focus on utilizing previous forest fire and weather data sourced from the UCI Machine Learning Repository to predict the Initial Spread Index (ISI) of fires in Portugal and any other countries using the Canadian Forest Wildfire Index System. We found this project to be of relevance considering the recent devastating droughts and fires in Northern Europe throughout Greece, Portugal, and Spain within the last year. Additionally, the relevance of the recent California fires also give support to the necessity of predictive analytics in this area. Hence, by utilizing a regressional model, we can predict the early behavior of a fire. Portugal utilizies the Canadian Forest Fire Weather Index System in order to track fuel moisture and wind to determine the intensity of a fire. Thus, by predicting the initial spread index of potential fires, we'd be able to predict the danger of a fire based on how quickly it would spread. The ISI scale begins at 0, where a 10 indicates a high rate of spread after ignition, and 16 or higher indicates an extreme rapid rate of spread.   
 
 # 2.3 Dataset {.tabset}
 
@@ -28,259 +28,138 @@ Our dataset comprises of the following 13 variables:
 5: FFMC (Fine Fuel Moisture Code) : a numeric rating of the moisture content of litter and other cured fine fuels. This code is an indicator of the relative ease of ignition and the flammability of fine fuel. <br>
 6: DMC (Duff Moisture Code): A numeric rating of the average moisture content of loosely compacted organic layers of moderate depth. This code gives an indication of fuel consumption in moderate duff layers and medium-size woody material.[^1] <br>
 7.Burned area of the forest: area of forest burned  <br>
-8. ISI (Initial Spread Index): expected rate of fire spread <br>
-9. temperature <br>
-10: RH (relative humidity) <br>
-11: wind: wind speed <br>
-12: rain <br>
-13: DC (Drought Code):  A numeric rating of the average moisture content of deep, compact organic layers. This code is a useful indicator of seasonal drought effects on forest fuels and the amount of smoldering in deep duff layers and large logs. 
+8. temperature <br>
+9: RH (relative humidity) <br>
+10: wind: wind speed <br>
+11: rain <br>
+12: DC (Drought Code):  A numeric rating of the average moisture content of deep, compact organic layers. This code is a useful indicator of seasonal drought effects on forest fuels and the amount of smoldering in deep duff layers and large logs. <br>
+
+**8. ISI (Initial Spread Index): expected rate of fire spread** <br>
+
   This variable will be our response variable and we will try and establish a linear relationship between the myriad of weather and meterological factors of the forest experiencing fires and the future expected area burn. [^2]
 
 ``` {r see_data}
 #reading in all the packages reqired for the report
-library(dummies)
 library(ggcorrplot)
 library(dplyr)
-library(tidyr)
-library(ggplot2)
 library(corrplot)
+library(leaps)
 
 #reading in the csv file
-dataset <- read.csv('forestfires.csv') 
+fire <- read.csv('forestfires.csv') 
 
-#displaying first 5 rows
-head(dataset)
-```
-
-## Brief Summary 
-``` {r read_data}
-# Lets get a brief summary of our dataset
-summary(dataset)
 ```
 
 
-## Data Cleaning
-Before we pursue our analysis it is vital that we remove, reorganize and convert our data as necessary. We will proceed as follows: 
-
-1. Converting monthly data to seasons: we will go ahead and represent the 12 months into 4 seasons as we deem it necessary to our analysis of seasonal drought. Furthermore, the 4 seasons will then be represented as 4 features comprising binary values indicating what season did the fire occur in 
-2. Remove redunant data (PENDING PENDING PENDING)
-3. Normalize our dataset. Since our features are on different scales, we believe it neccassary to normalize our features so as to bring them down to one common scale between the range of 0 and 1
-
-``` {r cleaning}
-
-#1  Converting text datetime data to numbers
-month_nums <-  c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 
-                 'nov', 'dec')
-
-# determining Portugal seasons based on the months 
+```{r data_cleaning}
 spring <- c('mar', 'apr', 'may')
 summer <- c('jun', 'jul', 'aug')
 autumn <- c('sep', 'oct','nov')
 winter <- c('dec','jan', 'feb')
 
-# initializing empty list to append the season to based on months
-seasons <- c()
+#clean data
+#change month and day into numeric data
+season = function(x){
+  if(x %in% spring){
+    return(1)
+  } else if(x %in% summer){
+    return(2)
+  } else if(x %in% autumn){
+    return(3)
+  } else{
+    return(4)
+  }
+}
 
-#looping over the month data in the file and converting them to the appropriate season 
-for ( month in dataset$month) {
-  if (any(spring==month)) {
-    seasons <- c(seasons,'spring')
-  } else if (any(summer==month)) {
-    seasons <- c(seasons,'summer')
-  } else if (any(autumn==month)) {
-    seasons <- c(seasons,'autumn')
-  } else if (any(winter==month)) {
-    seasons <- c(seasons,'winter')
-  } 
-}  
+week = function(x){
+  if(x == 'mon'){
+    return(1)
+  } else if(x == 'tue'){
+    return(2)
+  } else if(x == 'wed'){
+    return(3)
+  } else if(x == 'thu'){
+    return(4)
+  } else if(x == 'fri'){
+    return(5)
+  } else if(x == 'sat'){
+    return(6)
+  } else{
+    return(7)
+  }
+}
 
-#attaching the seasons column to the dataset
-dataset <- cbind(dataset, seasons)
-
-#checking if seasons and respective months match appropriately
-head(dataset$month)
-head(seasons)
-
-#2. Removing redundant data
-  #1. dropping the original months column
-  #2. dropping the "day" column
-dataset <- dataset[,-match(c("month","day", 'X', 'Y'),names(dataset))]
-dataset1 <- dataset
-
-#Next we need to convert our seasons variables (categorical) into binary representations of the same
-dataset <- dummy.data.frame(dataset)
-invisible(get.dummy( dataset, 'seasons' ))
-
-#3. Normalizing our dataset
-dataset <- as.data.frame(apply(dataset, 2, function(x) (x - min(x))/(max(x)-min(x))))
-str(dataset)
-
-# setting a variable to be used later in a plot
-plott <- dataset
+fire$month = sapply(fire$month, season)
+fire$day = sapply(fire$day, week)
 ```
 
-# 2.4 Methodology 
 
-## Correlation with the response variable {.tabset}
-We will further our analysis as follows: 
-1. In order to create a linear relationship between our response variable (Drought Code) and the other variables we need to first establish a reasonable correlation between our predictor variables and also with the response variable. 
+```{r}
+#check correlation and distributions
+library("psych")
+pairs.panels(fire)
+#check normality of response variable
+hist(fire$ISI, col = "lightblue", xlab = "ISI", main = "Histogram of ISI")
+```
+As we can see from the histogram, the distribution of our data is right-skewed. Therefore, to solve this issue we transform the data, so that a normality violation won't affect the estimates of the standard error. We transform the data by taking the log of all our ISI data.  
 
-### Correlation Heatmap
-Here compare the response variable with the predictor variables. It is vital to establish reasonable collinearity to perform any type of regression analysis. 
 
-``` {r analysis, warning = FALSE}
-
-
-#1. Visualizing correlations between our response variable and the predictor variable 
-# Comparing Y with all other predictor variables *(X's)
-corr1<-cor(x = dataset[,-3], y = dataset$DC, use="complete.obs")
-ggcorrplot(corr1)
-
+```{r}
+#transform data by taking log
+trans = log(fire$ISI)
+#Remove the below case or error occurs
+trans[380] = 0
+hist(trans, xlab = "Transformed ISI", col = "lightblue", main = "Histogram of ISI Transformed")
+abline(v = mean(trans), col = 'red')
+abline(v = median(trans), col = 'blue')
 ```
 
-### Correlation Scatterplot Matrix
+As we can see the distribution of ISI is now normal, and we can proceed with selecting the appropriate features for our model. A QQ-normal plot is shown below to illustrate that our data is normally distributed.  
 
-``` {r corr_scatter_mat, warning = FALSE}
-dataset %>%
-  gather(-DC, key = "var", value = "value") %>% 
-  ggplot(aes(x = value, y = DC)) +
-    facet_wrap(~ var, scales = "free") +
-    geom_point() +
-    stat_smooth()
+```{r}
+#use QQ plot check model
+summary(lm(trans ~.-ISI, data = fire))
+plot(lm(trans ~.-ISI, data = fire), 2)
 
 ```
 
 
-## Checking for multicolinearity {.tabset}
 
-### Multicolinearity Heatmap
-
-2. Multicolinearity occurs when predictor variables are linearly correlated with the other. This implies that a change in any one of the predictor variables would entail a change in another highly correlated predictor variable
-
-``` {r m_colin}
-#Checking for multicolinearity. Here we will compare each of our predictor variables with all the others predictor variables. 
-corr<-cor(dataset)
-
-#plotting correlation head map
-corrplot(corr, type = 'upper')
+```{r}
+#stepwise regression
+model = lm(trans ~.-ISI, data = fire)
+new_model = step(model)
 ```
 
-### Multicolinearity Scatterplot Matrix
-
-``` {r scat_mat}
-# Scatterplot Matrix
-pairs(~ dataset$FFMC+ dataset$DMC+ dataset$ISI + dataset$temp
-            + dataset$RH + dataset$wind + dataset$rain + dataset$area,data=dataset, 
-   main="Simple Scatterplot Matrix")
+The QQ-normal plot below illustrates the distribution of our data after utilizing stepwise regression for feature selection. 
+```{r}
+#new model QQ plot
+plot(new_model, 2)
+summary(lm(trans ~ month + FFMC + DC + temp + RH + wind, data = fire))
 ```
 
-The visual analysis above shows us that there doesn't exist any significant multicolinearity between the predictor variables. In general there always lies the possibility that variables within the same domain will correlate with one another to an extent. However to further confirm our claim, we will employ the use of the Variance Inflation Factor analysis. This analysis allows us to support / reject our claim using numerical proof. 
+However, stepwise doesn't remove all redundant features, and when we look closer at a summary of our model we can see that the p-value of `month` is above the significance of 0.05. So we can remove this feature from our model.
 
-It is important to note that lower the VIF (lowest being 1), the less multicolinearity exists in our dataset. A VIF of around 5 represents industry standard acceptance rate for multicolinearity as a small value indicates that the standard deviation of the respective variable parameter will remain relatively stable when other predictor variables are added into the regression equation. 
-
-``` {r vif}
-#we will go ahead and calculate the Variance Infation Factor for each of our predictor variables
-library(car)
-
-model <- lm(dataset$DC ~ dataset$FFMC+ dataset$DMC+ dataset$ISI + dataset$temp
-            + dataset$RH + dataset$wind + dataset$rain + dataset$area, data = dataset)
-#summary(model)
-vif(model)
+```{r}
+summary(lm(trans ~ FFMC + temp + RH + wind, data = fire))
+#displaying first 5 rows
 ```
+ Once removed we can finally see the results of our model, where all p-values are considerably low. Therefore the best features for our model include `FFMC`, `temp`, `RH`, and `wind`. Our model has a r-squared value of 0.66, inidcating that our model would likely be moderately useful in predicting the initial rate of spread of a fire.   
+ 
 
-Based on our data above, we can comfirm that there exists no significant multicolinearity in our dataset. Most of our VIF values are under 2.5 far below the industry threshold of 5. 
-
-##  Feature Selection: Stepwise regression
-3. We are now equipped with the proper features to proceed with our model. However, in order to derive the most appropriate model we will employ the use of forward step-wise regression. Therefore fitting our model in different ways so as to come up with the best set of features to accurately predict the Drought Code. 
-
-
-[NOTES FOR EDWIN: 
-
-- do we use the other feature selection methods too?
-- 'Seqrep' yields a "linear dependancy"" message. what does that mean? try it out and see!
-]
-
-``` {r feature_selection}
-#using the leaps package to perform feature selection
-library("leaps")
-
-#feature selection: Forward
-allSubset = regsubsets(DC ~., data = dataset, method = "forward")
-(s = summary(allSubset))
-#s1$adjr2
-#coef(allSubset, 6)
+## Brief Summary 
+``` {r read_data}
+# Lets get a brief summary of our dataset
 ```
-
-# 2.4 Results & Discussion
-
-## Fitting our model
-Based on our selected feature selection process the next step in our analysis will be to construct a model incorporating the selected 8 features. 
-
-``` {r model}
-#creating our model
-f_model = lm(DC ~ DMC + ISI + temp + RH + wind + seasonsautumn + seasonsspring + seasonswinter, data = dataset)
-summary(f_model)
-
-#plotting model results
-layout(matrix(1:4,2,2)) 
-plot(f_model) 
-```
-
-Residual errors plotted versus their fitted values: Ideally we would prefer that residuals should be randomly distributed around the zero line representing a residual error of zero and not show any distinct trend in the distribution of points. 
-
-Considering our anaysis, we see how for the most part the residuals are symetrically and randomly distributed around the zero but however tip very slightly as it further progresses. This slight deviation can be on account of the few outliers residuals. 
-
-Q-Q plot: Ideally the residual errors should be normally distribute. Our model shows similar behavior for the most part. 
-
-##  Visualizing our multi-dimensional model using PCA 
-Given that the dataset is multi-dimensional, it is vital to represent it in 2 OR 3 dimensions to comprehend it visually. Therefore our next step is to perform principal component analysis which entails projecting our dataset onto the eigenvectors (principal components) and perform dimension reduction. 
-
-However in order to represent our data in 2D or 3D using 2-3 princiapl components, it is vital to ensure that most of the variance in the data is retained else failing to represent the original data up to satisfaction 
-
-``` {r PCA}
-#projecting our data on its principal components
-
-dataset.pca <- prcomp(dataset,
-                 center = FALSE,
-                 scale. = FALSE) 
-
-#summary
-summary(dataset.pca)
-
-#plotting our variances against number of principal components
-plot(dataset.pca, type = "l")
-
-pc1 <- c(dataset.pca$x[,1])
-pc2 <- c(dataset.pca$x[,2])
-```
-
-The plot above compares the variances (y) captured by the principal components with the respective number of principal components (x). Based on the figure above we can conclude that retaining 1 principal component would be moderately appropriate to project on a 3d graph as we retain around 75% of the orginal data
-``` {r pca_2d}
-
-#plotting PC1 against the response variable
-plot(pc1, dataset$DC, main="Scatterplot", 
-  	xlab="Principal Component 1 ", ylab="Drought Code", pch=19)
-
-#plotting the regression line through PC1
-abline(lm(DC ~ pc1, data = dataset))
-
-```
-The graph above allows us to perform a check for equal variance. We can observe the following: 
-1. Our predictor variables (represented through their projection on the first principal component) do not show the ideal equal variance preffered in a regression model. This can be accounted for by the presence of numerous outliers. 
-
-
-# 2.6 Conclusion
-
-# 2.7
-Conclusion
-[PENDING]
 
 
 Footnotes: 
 
 [^1]: http://cwfis.cfs.nrcan.gc.ca/background/summary/fwi <br>
-[^2]: http://cwfis.cfs.nrcan.gc.ca/background/summary/fwi 
-
+[^2]: http://cwfis.cfs.nrcan.gc.ca/background/summary/fwi <br>
+[^3]: https://www.iafss.org/publications/aofst/1/77/view/aofst_1-77.pdf <br>
+[^4]: https://cfs.nrcan.gc.ca/publications/download-pdf/28538 <br>
+[^5]: https://www.bbc.com/news/world-europe-45070498 <br>
 
 
 
