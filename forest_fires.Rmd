@@ -12,19 +12,20 @@ output:
 # 2.1 Abstract
 
 # 2.2 Introduction
-Our project will focus on utilizing previous forest fire and weather data sourced from the UCI Machine Learning Repository to predict the Initial Spread Index (ISI) of fires in Portugal and any other countries using the Canadian Forest Wildfire Index System. We found this project to be of relevance considering the recent devastating droughts and fires in Northern Europe throughout Greece, Portugal, and Spain within the last year. Additionally, the relevance of the recent California fires also give support to the necessity of predictive analytics in this area. Hence, by utilizing a regressional model, we can predict the early behavior of a fire. Portugal utilizies the Canadian Forest Fire Weather Index System in order to track fuel moisture and wind to determine the intensity of a fire. Thus, by predicting the initial spread index of potential fires, we'd be able to predict the danger of a fire based on how quickly it would spread. The ISI scale begins at 0, where a 10 indicates a high rate of spread after ignition, and 16 or higher indicates an extreme rapid rate of spread.   
+Our regressional model will focus on utilizing previous forest fire and weather data sourced from the UCI Machine Learning Repository to predict the Initial Spread Index (ISI) of fires in Portugal and any countries using the Canadian Forest Wildfire Index System (CFWIS). We found this project to be of relevance considering the recent devastating droughts and fires in Northern Europe throughout Greece, Portugal, and Spain within the last year. Additionally, the relevance of the recent California fires also give support to the necessity of predictive analytics in this area. Hence, by utilizing a regressional model, we can predict the early behavior of a fire. Portugal utilizies the Canadian Forest Fire Weather Index System in order to track fuel moisture and wind speed to determine the intensity of a fire. Thus, by predicting the initial spread index of potential fires, we'd be able to predict the danger of a fire based on how quickly it would spread. The ISI scale begins at 0, where a 10 indicates a high rate of spread after ignition, and 16 or higher indicates an extreme rapid rate of spread.   
 
-The research question can be hypothesized aa follows: 
-H0: None of predictor variables in the dataset are useful in making predictions about the Initial Fire Index
-ha: At least one of predictor variables in the dataset is useful in making predictions about the Initial Fire Index
+The research question can be hypothesized as follows:
+
+$H_{0}:$ None of the predictor variables in the dataset are useful in making predictions about the Initial Spread Index.
+
+$H_{a}$: At least one of predictor variables in the dataset is useful in making predictions about the Initial Spread Index.
 
 
 # 2.3 Dataset 
 
 ## View Dataset
 
-Lets take a look at the features in our dataset
-Our dataset comprises of the following 13 variables: 
+The UCI dataset comprises of the following 13 variables: 
 
 1 & 2. X,Y : coordinates within the Montesinho park. Ranges from 1 to 9 <br>
 3. month: month when the fire frst occured <br>
@@ -56,7 +57,7 @@ head(fire)
 ```
 
 ## 2.4 Methodology
-In order to draw a relationship between the various weather, meteorological variables in our dataset and the response variable (Initial Spread Index), it is vital to transform and preprocess our data to succesfully represent this data in a linear relationship. 
+In order to draw a relationship between the various weather, meteorological variables in the dataset and the response variable (Initial Spread Index), it is vital to transform and preprocess our data to succesfully represent this data in a linear relationship. 
 
 Our methods to do the same involve the following: <br>
 1. Deleting redundant data that will fail to enhance the model's predictive power <br>
@@ -66,7 +67,7 @@ Our methods to do the same involve the following: <br>
 
 ### 1. Deleting Redundant Data
 Several variables in the given dataset do not assist in creating the linear relationship between with the response variable (Initial Spread Index). Briefly:<br> 
-a. X,Y: Removal of coordinate data as this limits the model to the specific area of the forest in the Portugal and does not generalize well to other regions of the world. For instance, if this mode were to be used elsewhere the coordinate data of its forest region would be redundant <br>
+a. X,Y: Coordinate data provided by the data can be considered redundant due to the coordintes being confined to the specific area of Montesinho Park in Portugal. This data can be removed because the goal of our model is to predict fires within countires that utilize the Canadian Fire Weather Index System.<br>
 b. Days: In isolation, the numerical value of a day does not provide any significant relevance to a datapoint <br>
 
 ``` {r delete_data}
@@ -74,9 +75,9 @@ fire <- fire[,-match(c("day", 'X', 'Y'),names(fire))]
 ```
 
 
-### 2. Convertion categorical data into numerical representations
- We will go ahead and represent the 12 months into 4 seasons as we deem it necessary to our analysis of seasonal drought. Furthermore, the 4 seasons will then be represented as 4 features comprising binary values indicating what season did the fire occur in 
- 
+### 2. Categorical Data
+
+The variable of months can be grouped to create a categorical variable that signifies seasons. Thus, each season will be represented as nominal variables in our regressional model. 
 ```{r data_cleaning_two}
 spring <- c('mar', 'apr', 'may')
 summer <- c('jun', 'jul', 'aug')
@@ -109,7 +110,8 @@ invisible(get.dummy( fire, 'season_'))
 ```
 
 ### 3.Transforming the response variable
-As we can see from the histogram below, the distribution of our data is right-skewed. Therefore, to solve this issue we transform the data, so that a normality violation won't affect the estimates of the standard error. We transform the data by taking the log of all our ISI data.  
+
+The histogram below illustrates the distribution of the response variable as right-skewed. To prevent a normality violation in the regressional model, the data is transformed by taking the natural log of all ISI data.  
 
 ```{r show}
 #check normality of response variable
@@ -130,7 +132,7 @@ abline(v = median(trans), col = 'blue')
 
 ```
 
-Consequentially, the distribution the response variable (ISI) is now normal, and we can proceed with selecting the appropriate features for our model. A QQ-normal plot is shown below to illustrate that our data is normally distributed.  
+Consequentially, the distribution the response variable (ISI) is now normal, and we can proceed with selecting the appropriate features for our model. A QQ-normal plot is shown below to illustrate that the residual data is normally distributed.  
 
 ```{r}
 #use QQ plot check model
@@ -141,7 +143,7 @@ plot(lm(trans ~.-ISI, data = fire),2)
 ### 4.Examining Multicolinearity {.tabset}
 Multicolinearity occurs when predictor variables are linearly correlated with the other. This implies that a change in any one of the predictor variables would entail a change in another highly correlated predictor variable. 
 
-Before we proceed to fit our model it is important to perform 2 vital checks. Firstly, there needs to be a reasonable correlation between the predictor variables and the response variables. An absence of any linear pattern does not warrant the use of a linear regression problem in the first place
+Before we proceed to fit our model it is important to perform two vital checks. Firstly, there needs to be a reasonable correlation between the predictor variables and the response variable. An absence of any linear pattern does not warrant the use of a linear regression problem.
 
 #### Colinearity Between Predictor Variables
 
@@ -151,7 +153,7 @@ corr<-cor(fire)
 #plotting correlation head map
 corrplot(corr, type = 'upper')
 ```
-#### Correlation strength Between Predictor Variables and Response Variable 
+#### Correlation Between Predictor and Response Variable 
 ``` {r analysis, warning = FALSE}
 #1. Visualizing correlations between our response variable and the predictor variable 
 # Comparing Y with all other predictor variables *(X's)
@@ -159,26 +161,28 @@ corr1<-cor(x = fire[,-8], y = trans, use="complete.obs")
 ggcorrplot(corr1)
 ```
 
-The visual analysis above shows us that there are over 8 predictor variables that possess a significant correlation strength with the response variable (transformed ISI). Furthermore we also see that there exists no significant multicolinearity between the predictor variables. In general there always lies the possibility that variables within the same domain will correlate with one another to an extent. 
+The visual analysis above shows us that there are several predictor variables that possess a significant correlation strength with the response variable (transformed ISI). Furthermore we also see that there exists no significant multicolinearity between the predictor variables. In general there always lies the possibility that variables within the same domain will correlate with one another to an extent. 
 
-However to further confirm our claim, we will employ the use of the Variance Inflation Factor analysis. This analysis allows us to support / reject our claim using numerical proof. It is important to note that lower the VIF (lowest being 1), the less multicolinearity exists in our dataset. A VIF of around 5 represents industry standard acceptance rate for multicolinearity as a small value indicates that the standard deviation of the respective variable parameter will remain relatively stable when other predictor variables are added into the regression equation. 
+However to further confirm our claim, we will employ the use of the Variance Inflation Factor analysis. This analysis allows us to support / reject our claim using numerical proof. It is important to note that the lower the VIF (lowest being 1), the less multicolinearity exists in our dataset. A VIF of 5 represents industry standard acceptance rate for multicolinearity as a small value indicates that the standard deviation of the respective variable parameter will remain relatively stable when other predictor variables are added into the regression equation. 
 
 ``` {r vif}
-#we will go ahead and calculate the Variance Infation Factor for each of our predictor variables
+#Calculate the Variance Inflation Factor for each of the predictor variables
 model <- lm(trans~ fire$FFMC + fire$DMC + fire$DC + fire$temp + fire$RH + fire$wind + fire$rain + fire$area, data = fire)
 #summary(model)
 vif(model)
 
 ```
-Based on our data above, we can confirm that there exists no significant multicolinearity in our dataset. Most of our VIF values are under 2.5 far below the industry threshold of 5. 
+Based on the data above, it further supports that there exists no significant multicolinearity in the dataset. Most of the VIF values are under 2.5 far below the industry threshold of 5. 
 
 # 2.5 Results & Discussion
-Proceeding to establish a sound linear relationship between the weather, meteorological variables and the response variable our next steps comprise the following:  <br>
+
+After analyzing the correlation of the predictor variables in the dataset, the next steps comprise the following:  <br>
 1. Feature Selection <br>
 2. Model fitting using Training Data <br>
 3. Analysis <br>
 
 ### 1.Feature Selection 
+
 Using stepwise regression, we iterate through different possibilities of a linear model and choose one with features yileding the best (lowest) error metric.
 
 The QQ-normal plot below illustrates the distribution of our data after utilizing stepwise regression for feature selection. 
@@ -196,7 +200,7 @@ new_model$terms
 
 ### 2. Fitting the model
 
-Before we go ahead and fit our model, it is important to disproportionally and randomly split up the dataset into training and test data. This will allow us to measure the accuracy of the dataset using the selected variables. 
+A portion of the data is separated to be utilized as a training set, while the remaining portion will be utilized as a test set.This will allow the accuracy of the model to be measured. 
 ``` {r}
 #attaching the trans column to the main fire dataset
 fire_to_split <- cbind(fire, trans)
@@ -212,7 +216,7 @@ test = setdiff(fire_to_split, train)
 ```
 
 
-Now we will fit a model using the training data with the selected features. After removing features not selected from stepwise regression, our model include `season_autumn`,`season_spring` ,`season_summer`,`FFMC`, `temp`, `RH`, and `wind`
+Next, the training data is fitted to the model with the selected features. After removing features not selected from stepwise regression, the model includes `season_autumn`,`season_spring` ,`season_summer`,`FFMC`, `temp`, `RH`, and `wind`
 ``` {r}
 #fitting the model
 m = lm(train$trans ~ season_autumn + season_spring + season_summer + FFMC + temp + RH + wind - ISI - trans, data = train)
@@ -220,14 +224,15 @@ summary(m)
 ```
 
 ### 3. Analysis
-We can make the following conclusions: 
-- The overall P-value of the model is <2.2e-16. Being far below the indsutry standard 5% alpha rate we can conclude that at least one of the features is useful in predicting the response variable (ISI)
-- The model yields an r-squared value of 0.66, indicating that it would likely be moderately useful in predicting the initial rate of spread of a fire.   
+
+The following conclusions are the results of our model: 
+- The overall P-value of the model is <2.2e-16. Being far below the indsutry standard of 5% significance level, it can be concluded that at least one of the features is useful in predicting the response variable (ISI). Therefore the null hypothesis $H_{0}$ is rejected.
+- The model yields an r-squared value of 0.66, indicating that it would likely be moderately useful in predicting the initial rate of spread of a fire. 
 
 ### 4. Cooks distance
-After fitting the model, it may be interesting to also look at the cooks distance metrics for our sample datapoints and examine if the regression line is affected, if at all, by amny influential datapoints thus leading decreasing the model's power to generalize. 
+After fitting the model, cook's distance  is utilized to analyze if any influential data points affect the regression line. If any exist, this  decreases the model's ability to generalize. 
 
-Based on the plot below, we can confirm that our training dataset comprises no outlier points (>1) that also happen to be significantly influential outliers.
+Based on the plot below, it can be confirmed that the training dataset contains no outlier points (>1), or significantly influential outliers.
 ``` {r}
 #cooks distance
 library(stats)
@@ -236,7 +241,8 @@ plot(cook, ylab = 'cooks dist')
 ```
 
 ### 5. Testing the model
-we will go ahead and test the model and return the mean squared error of the same
+
+The model can be tested, and resulting mean squared error support our conclusion that the model is moderately useful. 
 ``` {r}
 sum_square_errors <- sum((test$trans - predict(m,newdata = test))^2)
 sum_square_errors
