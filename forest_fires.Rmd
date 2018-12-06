@@ -54,6 +54,7 @@ library("psych")
 #reading in the csv file
 fire <- read.csv('forestfires.csv') 
 head(fire)
+
 ```
 
 ## 2.4 Methodology
@@ -104,8 +105,8 @@ fire$month = sapply(fire$month, season)
 colnames(fire)[colnames(fire)=="month"] <- "season_"
 
 #Converting the months column into 4 columns, one for each season
-fire <- dummy.data.frame(fire)
-invisible(get.dummy( fire, 'season_'))
+#fire <- dummy.data.frame(fire)
+#invisible(get.dummy( fire, 'season_'))
 
 ```
 
@@ -136,8 +137,8 @@ Consequentially, the distribution the response variable (ISI) is now normal, and
 
 ```{r}
 #use QQ plot check model
-summary(lm(trans ~.-ISI, data = fire))
-plot(lm(trans ~.-ISI, data = fire),2)
+summary(lm(trans ~.-ISI - season_ + factor(season_) , data = fire))
+plot(lm(trans ~.-ISI - season_ + factor(season_), data = fire),2)
 ```
 
 ### 4.Examining Multicolinearity {.tabset}
@@ -148,8 +149,11 @@ Before we proceed to fit our model it is important to perform two vital checks. 
 #### Colinearity Between Predictor Variables
 
 ``` {r}
+#removing seasons for correlation
+fire_cor <- fire[,-match(c('season_'),names(fire))]
+
 #Checking for multicolinearity. Here we will compare each of our predictor variables with all the others predictor variables. 
-corr<-cor(fire)
+corr<-cor(fire_cor)
 #plotting correlation head map
 corrplot(corr, type = 'upper')
 ```
@@ -157,7 +161,7 @@ corrplot(corr, type = 'upper')
 ``` {r analysis, warning = FALSE}
 #1. Visualizing correlations between our response variable and the predictor variable 
 # Comparing Y with all other predictor variables *(X's)
-corr1<-cor(x = fire[,-8], y = trans, use="complete.obs")
+corr1<-cor(x = fire_cor[,-4], y = trans, use="complete.obs")
 ggcorrplot(corr1)
 ```
 
@@ -167,7 +171,7 @@ However to further confirm our claim, we will employ the use of the Variance Inf
 
 ``` {r vif}
 #Calculate the Variance Inflation Factor for each of the predictor variables
-model <- lm(trans~ fire$FFMC + fire$DMC + fire$DC + fire$temp + fire$RH + fire$wind + fire$rain + fire$area, data = fire)
+model <- lm(trans~ fire$FFMC + fire$DMC + fire$DC + fire$temp + fire$RH + fire$wind + fire$rain + fire$area + factor(fire$season_) , data = fire)
 #summary(model)
 vif(model)
 
@@ -188,7 +192,7 @@ Using stepwise regression, we iterate through different possibilities of a linea
 The QQ-normal plot below illustrates the distribution of our data after utilizing stepwise regression for feature selection. 
 ```{r}
 # forward stepwise regression
-model = lm(trans ~.-ISI, data = fire)
+model = lm(trans ~.-ISI - season_ + factor(season_), data = fire)
 new_model = step(model)
 
 #new model QQ plot
@@ -215,11 +219,10 @@ train <- fire_to_split[ran,]
 test = setdiff(fire_to_split, train)
 ```
 
-
-Next, the training data is fitted to the model with the selected features. After removing features not selected from stepwise regression, the model includes `season_autumn`,`season_spring` ,`season_summer`,`FFMC`, `temp`, `RH`, and `wind`
+Next, the training data is fitted to the model with the selected features. After removing features not selected from stepwise regression, the model includes `factor(season_)`,`FFMC`, `temp`, `RH`, and `wind`
 ``` {r}
 #fitting the model
-m = lm(train$trans ~ season_autumn + season_spring + season_summer + FFMC + temp + RH + wind - ISI - trans, data = train)
+m = lm(train$trans ~ FFMC + temp + RH + wind - ISI - trans - season_ + factor(season_), data = train)
 summary(m)
 ```
 
@@ -227,12 +230,12 @@ summary(m)
 
 The following conclusions are the results of our model: 
 - The overall P-value of the model is <2.2e-16. Being far below the indsutry standard of 5% significance level, it can be concluded that at least one of the features is useful in predicting the response variable (ISI). Therefore the null hypothesis $H_{0}$ is rejected.
-- The model yields an r-squared value of 0.66, indicating that it would likely be moderately useful in predicting the initial rate of spread of a fire. 
+- The model yields an r-squared value of 0.76, indicating that it would likely be moderately useful in predicting the initial rate of spread of a fire. 
 
 ### 4. Cooks distance
 After fitting the model, cook's distance  is utilized to analyze if any influential data points affect the regression line. If any exist, this  decreases the model's ability to generalize. 
 
-Based on the plot below, it can be confirmed that the training dataset contains no outlier points (>1), or significantly influential outliers.
+Based on the plot below, it can be confirmed that the training dataset one outlier point (>1). This outlier point is also influential in affecting the regression line of the model
 ``` {r}
 #cooks distance
 library(stats)
