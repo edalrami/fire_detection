@@ -231,6 +231,7 @@ Based on the data above, it further supports that there exists no significant mu
 # Results
 
 After analyzing the correlation of the predictor variables in the dataset, the next steps comprise the following:  <br>
+
 1. Feature Selection <br>
 
 2. Model fitting using Training Data <br>
@@ -295,7 +296,7 @@ The following conclusions are the results of our model:
 
 After fitting the model, cook's distance  is utilized to analyze if any influential data points affect the regression line. If any exist, this  decreases the model's ability to generalize. 
 
-Based on the plot below, it can be confirmed that the training dataset one outlier point (>1). This outlier point is also influential in affecting the regression line of the model
+Based on the plot below, it can be confirmed that the training dataset has no influential outlier points (>1), thus not influencing the regression line of the model.
 
 ``` {r, echo = FALSE}
 #cooks distance

@@ -697,11 +697,12 @@ under 2.5 far below the industry threshold of 5.
 \section{Results}\label{results}}
 
 After analyzing the correlation of the predictor variables in the
-dataset, the next steps comprise the following: 1. Feature Selection
+dataset, the next steps comprise the following:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
-\setcounter{enumi}{1}
+\item
+  Feature Selection 
 \item
   Model fitting using Training Data 
 \item
@@ -761,8 +762,8 @@ influential data points affect the regression line. If any exist, this
 decreases the model's ability to generalize.
 
 Based on the plot below, it can be confirmed that the training dataset
-one outlier point (\textgreater{}1). This outlier point is also
-influential in affecting the regression line of the model
+has no influential outlier points (\textgreater{}1), thus not
+influencing the regression line of the model.
 
 \includegraphics{forest_fires_files/figure-latex/unnamed-chunk-8-1.pdf}
 
