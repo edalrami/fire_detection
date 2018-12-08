@@ -22,8 +22,7 @@ affiliation:
         - name: Darshil Desai
           email: d_desai1@u.pacific.edu
 abstract: |
-  The abstract goes here.
-  On multiple lines eventually.
+  This paper focuses on the predicting forest fire behavior using a variety of weather and meteorological data. The study incudes data from 517 forest fires in the Montesinho Natural Park in Northern Portugal from Janurary 2000 to December 2003. We look to draw a linear relationship between predictor variables (weather and meteorlogical data) and the Initial Spread Index (ISI) as our response variable. The Inital Spread Index, ranging from 0 to 56, refers to the rate of spread of a fire. Serving as an efficient measure of potential fire danger, a high ISI also indicates higher difficulty of fire control in a given region. In this paper we will test for multicolinearily between the predictor variables, examine outliers, transform data, and stepwise regression to select the most optimal features for a linear regression model.
 
 bibliography: mybibfile.bib
 output: rticles::ieee_article
@@ -32,7 +31,7 @@ output: rticles::ieee_article
 Introduction
 =============
 <!-- no \IEEEPARstart -->
-Our regressional model will focus on utilizing previous forest fire and weather data sourced from the UCI Machine Learning Repository to predict the Initial Spread Index (ISI) of fires in Portugal and any countries using the Canadian Forest Wildfire Index System (CFWIS). We found this project to be of relevance considering the recent devastating droughts and fires in Northern Europe throughout Greece, Portugal, and Spain within the last year. Additionally, the relevance of the recent California fires also give support to the necessity of predictive analytics in this area. Hence, by utilizing a regressional model, we can predict the early behavior of a fire. Portugal utilizies the Canadian Forest Fire Weather Index System in order to track fuel moisture and wind speed to determine the intensity of a fire. Thus, by predicting the initial spread index of potential fires, we'd be able to predict the danger of a fire based on how quickly it would spread. The ISI scale begins at 0, where a 10 indicates a high rate of spread after ignition, and 16 or higher indicates an extreme rapid rate of spread.   
+Our regressional model will focus on utilizing previous forest fire and weather data sourced from the UCI Machine Learning Repository to predict the Initial Spread Index (ISI) of fires in Portugal and any countries using the Canadian Forest Wildfire Index System (CFWIS). Previous studies have attempted to utilize the same dataset in order to create a regression model that could predict the potential area that would be burned in a fire, but these models proved to be unsucessful. Ultimately, we found this project to be of relevance considering the recent devastating droughts and fires in Northern Europe throughout Greece, Portugal, and Spain within the last year. Additionally, the relevance of the recent California fires also give support to the necessity of predictive analytics in this area. Hence, by utilizing a regressional model, we can predict the early behavior of a fire. Portugal utilizies the Canadian Forest Fire Weather Index System in order to track fuel moisture and wind speed to determine the intensity of a fire. Thus, by predicting the initial spread index of potential fires, we'd be able to predict the danger of a fire based on how quickly it would spread. The ISI scale begins at 0, where a 10 indicates a high rate of spread after ignition, and 16 or higher indicates an extreme rapid rate of spread.   
 
 The research question can be hypothesized as follows:
 
@@ -54,6 +53,7 @@ library(dummies)
 library(car)
 library("psych")
 library("stats")
+library("kableExtra")
 #reading in the csv file
 fire <- read.csv('forestfires.csv') 
 head(fire)
@@ -70,9 +70,9 @@ The UCI dataset comprises of the following 13 variables:
 
 - **day**: day of the given month when the fire occured <br>
 
-- **FFMC (Fine Fuel Moisture Code)** : a numeric rating of the moisture content of litter and other cured fine fuels. This code is an indicator of the relative ease of ignition and the flammability of fine fuel. <br>
+- **FFMC (Fine Fuel Moisture Code)** : a numeric rating of the moisture content of litter and other cured fine fuels (1cm-4cm deep). This code is an indicator of the relative ease of ignition and the flammability of fine fuel. <br>
 
-- **DMC (Duff Moisture Code)**: A numeric rating of the average moisture content of loosely compacted organic layers of moderate depth. This code gives an indication of fuel consumption in moderate duff layers and medium-size woody material. <br>
+- **DMC (Duff Moisture Code)**: A numeric rating of the average moisture content of loosely compacted organic layers of moderate depth (5cm-10cm). This code gives an indication of fuel consumption in moderate duff layers and medium-size woody material. <br>
 
 - **Area**: area of forest burned  <br>
 
@@ -84,9 +84,12 @@ The UCI dataset comprises of the following 13 variables:
 
 - **rain**: cm of rain <br>
 
-- **DC (Drought Code)**:  A numeric rating of the average moisture content of deep, compact organic layers. This code is a useful indicator of seasonal drought effects on forest fuels and the amount of smoldering in deep duff layers and large logs. <br>
+- **DC (Drought Code)**:  A numeric rating of the average moisture content of deep, compact organic layers (10cm-20cm deep). This code is a useful indicator of seasonal drought effects on forest fuels and the amount of smoldering in deep duff layers and large logs. <br>
 
 - **ISI (Initial Spread Index)**: expected rate of fire spread.This variable will be our response variable and we will try and establish a linear relationship between the myriad of weather and meterological factors of the forest experiencing fires and the future expected area burn. [^2] <br> 
+
+![Moisture Variables](moist.png)
+
 
 # Methodology
 In order to draw a relationship between the various weather, meteorological variables in the dataset and the response variable (Initial Spread Index), it is vital to transform and preprocess our data to succesfully represent this data in a linear relationship. 
@@ -169,7 +172,7 @@ abline(v = median(trans), col = 'blue')
 
 ```
 
-The response variable of ISI was originally right-skewed. To prevent a normality violation in the regressional model, the data is transformed by taking the natural log of all ISI data. A QQ-normal plot is shown below to illustrate that the residual data is normally distributed after being transformed.
+The response variable of ISI was originally right-skewed. To prevent a normality violation in the regressional model, the data is transformed by taking the natural log of all ISI data. A QQ-normal plot is shown in the top-right to illustrate that the residual data is normally distributed after being transformed.
 
 ```{r, echo = FALSE}
 #png("qqnorm.png", units = "px", width=960, height=960)
@@ -212,11 +215,14 @@ The visual analysis above shows us that there are several predictor variables th
 
 However to further confirm our claim, we will employ the use of the Variance Inflation Factor analysis. This analysis allows us to support / reject our claim using numerical proof. It is important to note that the lower the VIF (lowest being 1), the less multicolinearity exists in our dataset. A VIF of 5 represents industry standard acceptance rate for multicolinearity as a small value indicates that the standard deviation of the respective variable parameter will remain relatively stable when other predictor variables are added into the regression equation. 
 
-``` {r vif}
+``` {r vif, echo = FALSE}
 #Calculate the Variance Inflation Factor for each of the predictor variables
 model <- lm(trans~ fire$FFMC + fire$DMC + fire$DC + fire$temp + fire$RH + fire$wind + fire$rain + fire$area + factor(fire$season_) , data = fire)
 #summary(model)
-vif(model)
+V = as.data.frame(vif(model))
+rownames(V) = c("FFMC", "DMC", "DC", "temp", "RH", "wind", "rain", "area", "factor(season_)")
+library(knitr)
+kable(V)
 ```
 
 
@@ -254,7 +260,9 @@ plot(new_model, 2)
 
 A portion of the data is separated to be utilized as a training set, while the remaining portion will be utilized as a test set.This will allow the accuracy of the model to be measured. 
 
-Next, the training data is fitted to the model with the selected features. After removing features not selected from stepwise regression, the model includes `factor(season_)`,`FFMC`, `temp`, `RH`, and `wind`
+Next, the training data is fitted to the model with the selected features. After removing features not selected from stepwise regression, the model includes `factor(season_)`,`FFMC`, `temp`, `RH`, and `wind`. Therefore, our regressional model can be written as the following:
+
+$$ISI = \beta_{0} + \beta_{1}season + \beta_{2}FFMC + \beta_{3}temp + \beta_{4}RH + \beta_{5}wind$$
 
 ``` {r, echo = FALSE}
 #attaching the trans column to the main fire dataset
@@ -300,11 +308,11 @@ plot(cook, ylab = 'cooks dist')
 
 ## Testing the Model
 
-The model can be tested, and resulting mean squared error support our conclusion that the model is moderately useful. 
+By testing the model, the resulting mean squared error supports our conclusion that the model is moderately useful. Because the mean squared error is 0.09 we can conclude that on average the actual Initial Spread Index, given the predictor variables in the test data, deviates from the true regression line by approximately the rate of 2.46 , in ISI units.
 
 ``` {r, echo = FALSE, include = FALSE}
-sum_square_errors <- sum((test$trans - predict(m,newdata = test))^2)
-sum_square_errors
+mean_square_error <- sum((test$trans - predict(m,newdata = test))^2)/ (as.numeric(dim(test)[1]) -2)
+mean_square_error
 ```
 
 ``` {r, echo = FALSE, include = FALSE}
@@ -436,7 +444,11 @@ week = function(x){
 
 Conclusion
 ============
-The conclusion goes here.
+In conclusion our multiple linear regression model is succesfully able to predict the Initial Spread Index given the various weather and meteorological predictor variables in the data. Therefore, we can reject the null hypothesis $H_{0}$ that none of the predictor variables would prove to be singificant. It is vital to point out that several other studies utilizing the same dataset focused their attention on predicting the area of the forest burned. Our study however deems the Initial Spread Index more suitable as it combines the effects of wind and the fine fuel moisture code. These two vital variables are present in any given forest environment, therefore strengthening the model and confirming its internal validity. All of our selected predictor variables occur naturally and completely independently from each other. This allows us to successfully predict the initial spread index of a fire to determine the rate of spread, and ultimately predict the behavior of fires.
+
+If this model was to be used only regionally, (i.e. for forests in the general European ecosystems from where the data was collected) we would have also included predictor variables such as the forest coordinate data in order to take into consideration common forest areas that have previously caught on fire at a faster rate than the others. However, doing so would weaken the external validity of the model and not generalize well to forest ecosystems around the world that utilize the Canadian Fire Weather Index System. Hence aiming for this model to apply well in other settings, we have only considered weather and meteorological variables that are mutually present in all forests and grasslands.
+
+Another opportunity to enhance our model's predictive power lies in expanding the time period the data was limited to. The dataset expanded to around three years time frame (January 2000 - December 2003). However, we believe the model would generalize better if we increased the size of the training data to account for previous years as well. Furthermore the analysis could then also extend to focusing on varying rates of Initial Spread Index over the years and examine its causes.
 
 <!-- conference papers do not normally have an appendix -->
 
@@ -445,7 +457,13 @@ Acknowledgment {#acknowledgment}
 
 The authors would like to thank... Dr. Zarei
 
+\newpage
+
 References
 ===================
-\newpage
+
+@bbc
+@Cortez
+@Shutting
+
 

@@ -50,6 +50,7 @@ library(leaps)
 library(dummies)
 library(car)
 library("psych")
+library("kableExtra")
 #reading in the csv file
 fire <- read.csv('forestfires.csv') 
 head(fire)
