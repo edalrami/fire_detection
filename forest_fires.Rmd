@@ -50,7 +50,6 @@ library(leaps)
 library(dummies)
 library(car)
 library("psych")
-
 #reading in the csv file
 fire <- read.csv('forestfires.csv') 
 head(fire)
@@ -71,7 +70,7 @@ Several variables in the given dataset do not assist in creating the linear rela
 a. X,Y: Coordinate data provided by the data can be considered redundant due to the coordintes being confined to the specific area of Montesinho Park in Portugal. This data can be removed because the goal of our model is to predict fires within countires that utilize the Canadian Fire Weather Index System.<br>
 b. Days: In isolation, the numerical value of a day does not provide any significant relevance to a datapoint <br>
 
-``` {r delete_data}
+``` {r delete_data, echo = FALSE}
 fire <- fire[,-match(c("day", 'X', 'Y'),names(fire))]
 ```
 
@@ -136,9 +135,11 @@ abline(v = median(trans), col = 'blue')
 Consequentially, the distribution the response variable (ISI) is now normal, and we can proceed with selecting the appropriate features for our model. A QQ-normal plot is shown below to illustrate that the residual data is normally distributed.  
 
 ```{r}
+#png("qqnorm.png", units = "px", width=960, height=960)
 #use QQ plot check model
 summary(lm(trans ~.-ISI - season_ + factor(season_) , data = fire))
 plot(lm(trans ~.-ISI - season_ + factor(season_), data = fire),2)
+#dev.off()
 ```
 
 ### 4.Examining Multicolinearity {.tabset}
@@ -155,14 +156,19 @@ fire_cor <- fire[,-match(c('season_'),names(fire))]
 #Checking for multicolinearity. Here we will compare each of our predictor variables with all the others predictor variables. 
 corr<-cor(fire_cor)
 #plotting correlation head map
+#png("corrplot.png", units = "px", width=960, height=960)
 corrplot(corr, type = 'upper')
+#dev.off()
 ```
 #### Correlation Between Predictor and Response Variable 
 ``` {r analysis, warning = FALSE}
 #1. Visualizing correlations between our response variable and the predictor variable 
 # Comparing Y with all other predictor variables *(X's)
 corr1<-cor(x = fire_cor[,-4], y = trans, use="complete.obs")
+
+#png("qqnorm.png", units = "px")
 ggcorrplot(corr1)
+#dev.off()
 ```
 
 The visual analysis above shows us that there are several predictor variables that possess a significant correlation strength with the response variable (transformed ISI). Furthermore we also see that there exists no significant multicolinearity between the predictor variables. In general there always lies the possibility that variables within the same domain will correlate with one another to an extent. 
@@ -196,7 +202,9 @@ model = lm(trans ~.-ISI - season_ + factor(season_), data = fire)
 new_model = step(model)
 
 #new model QQ plot
+#png("qqnorm2.png", units = "px", width=960, height=960)
 plot(new_model, 2)
+#dev.off()
 
 new_model$terms
 ```
@@ -240,7 +248,10 @@ Based on the plot below, it can be confirmed that the training dataset one outli
 #cooks distance
 library(stats)
 cook = cooks.distance(m)   # here m is the linear mode
+
+#png("cook.png", units = "px", width=960, height=960)
 plot(cook, ylab = 'cooks dist')
+#dev.off()
 ```
 
 ### 5. Testing the model

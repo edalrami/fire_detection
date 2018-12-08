@@ -1,0 +1,451 @@
+---
+title: Predicting Fire Behavior Using Weather & Meteorological Data
+affiliation:
+  ## use one only of the following
+  # author-columnar: true         ## one column per author
+  institution-columnar: true  ## one column per institution (multiple autors eventually)
+  # wide: true                  ## one column wide author/affiliation fields
+
+  institution:
+    - name: University of the Pacific
+      department: School of Engineering and Computer Science
+      location: San Francisco, CA, 94103
+      email: e_ramirez23@u.pacific.edu
+      mark: 1
+      author:
+        - name: Edwin Ramirez
+    - name: University of the Pacific
+      department: School of Engineering and Computer Science
+      location: San Francisco, CA, 94103
+      mark: 2
+      author:
+        - name: Darshil Desai
+          email: d_desai1@u.pacific.edu
+abstract: |
+  The abstract goes here.
+  On multiple lines eventually.
+
+bibliography: mybibfile.bib
+output: rticles::ieee_article
+---
+
+Introduction
+=============
+<!-- no \IEEEPARstart -->
+Our regressional model will focus on utilizing previous forest fire and weather data sourced from the UCI Machine Learning Repository to predict the Initial Spread Index (ISI) of fires in Portugal and any countries using the Canadian Forest Wildfire Index System (CFWIS). We found this project to be of relevance considering the recent devastating droughts and fires in Northern Europe throughout Greece, Portugal, and Spain within the last year. Additionally, the relevance of the recent California fires also give support to the necessity of predictive analytics in this area. Hence, by utilizing a regressional model, we can predict the early behavior of a fire. Portugal utilizies the Canadian Forest Fire Weather Index System in order to track fuel moisture and wind speed to determine the intensity of a fire. Thus, by predicting the initial spread index of potential fires, we'd be able to predict the danger of a fire based on how quickly it would spread. The ISI scale begins at 0, where a 10 indicates a high rate of spread after ignition, and 16 or higher indicates an extreme rapid rate of spread.   
+
+The research question can be hypothesized as follows:
+
+$H_{0}:$ None of the predictor variables in the dataset are useful in making predictions about the Initial Spread Index.
+
+$H_{a}$: At least one of predictor variables in the dataset is useful in making predictions about the Initial Spread Index.
+<!-- You must have at least 2 lines in the paragraph with the drop letter -->
+<!-- (should never be an issue) -->
+
+# Dataset 
+
+``` {r see_data, warning = FALSE, echo = FALSE, message = FALSE, comment = FALSE, include = FALSE}
+#reading in all the packages reqired for the report
+library(ggcorrplot)
+library(dplyr)
+library(corrplot)
+library(leaps)
+library(dummies)
+library(car)
+library("psych")
+library("stats")
+#reading in the csv file
+fire <- read.csv('forestfires.csv') 
+head(fire)
+
+```
+
+## View Dataset
+
+The UCI dataset comprises of the following 13 variables: 
+
+- **X** : coordinate within the Montesinho park. Ranges from 1 to 9 <br>
+- **Y** : coordinate within the Montesinho park. Ranges from 1 to 9 <br>
+- **month**: month when the fire frst occured <br>
+
+- **day**: day of the given month when the fire occured <br>
+
+- **FFMC (Fine Fuel Moisture Code)** : a numeric rating of the moisture content of litter and other cured fine fuels. This code is an indicator of the relative ease of ignition and the flammability of fine fuel. <br>
+
+- **DMC (Duff Moisture Code)**: A numeric rating of the average moisture content of loosely compacted organic layers of moderate depth. This code gives an indication of fuel consumption in moderate duff layers and medium-size woody material. <br>
+
+- **Area**: area of forest burned  <br>
+
+- **temperature**: temperature in Celsius <br>
+
+- **RH**: relative humidity <br>
+
+- **wind**: wind speed <br>
+
+- **rain**: cm of rain <br>
+
+- **DC (Drought Code)**:  A numeric rating of the average moisture content of deep, compact organic layers. This code is a useful indicator of seasonal drought effects on forest fuels and the amount of smoldering in deep duff layers and large logs. <br>
+
+- **ISI (Initial Spread Index)**: expected rate of fire spread.This variable will be our response variable and we will try and establish a linear relationship between the myriad of weather and meterological factors of the forest experiencing fires and the future expected area burn. [^2] <br> 
+
+# Methodology
+In order to draw a relationship between the various weather, meteorological variables in the dataset and the response variable (Initial Spread Index), it is vital to transform and preprocess our data to succesfully represent this data in a linear relationship. 
+
+Our methods to do the same involve the following: <br>
+
+1. Deleting redundant data that will fail to enhance the model's predictive power <br>
+
+2. Representing categorical data (months) as binary numerical data. <br>
+
+3. Transforming our response variable <br>
+
+4. Examine multicolinearity <br>
+
+## Redundant Data
+Several variables in the given dataset do not assist in creating the linear relationship between with the response variable (Initial Spread Index). Briefly:<br> 
+
+- **X**,**Y**: Coordinate data provided by the data can be considered redundant due to the coordintes being confined to the specific area of Montesinho Park in Portugal. This data can be removed because the goal of our model is to predict fires within countires that utilize the Canadian Fire Weather Index System.<br>
+
+- **Days**: In isolation, the numerical value of a day does not provide any significant relevance to a datapoint <br>
+
+## Categorical Data
+
+``` {r delete_data, echo = FALSE, include = FALSE}
+fire <- fire[,-match(c("day", 'X', 'Y'),names(fire))]
+```
+
+
+The variable of **months** can be grouped to create a categorical variable that signifies **seasons**. Thus, each season will be represented as nominal variables in our regressional model. 
+
+```{r data_cleaning_two, echo = FALSE, include = FALSE}
+spring <- c('mar', 'apr', 'may')
+summer <- c('jun', 'jul', 'aug')
+autumn <- c('sep', 'oct','nov')
+winter <- c('dec','jan', 'feb')
+
+#clean data
+# Representing months as the appropriate season it is a part of
+season = function(x){
+  if(x %in% spring){
+    return('spring')
+  } else if(x %in% summer){
+    return('summer')
+  } else if(x %in% autumn){
+    return('autumn')
+  } else{
+    return('winter')
+  }
+}
+
+fire$month = sapply(fire$month, season)
+
+#renaming the month column to "seasons"
+colnames(fire)[colnames(fire)=="month"] <- "season_"
+
+#Converting the months column into 4 columns, one for each season
+#fire <- dummy.data.frame(fire)
+#invisible(get.dummy( fire, 'season_'))
+
+```
+
+
+## Normality the Response Variable
+
+```{r, echo = FALSE}
+#check normality of response variable
+hist(fire$ISI, col = "lightblue", xlab = "ISI", main = "Histogram of ISI")
+```
+
+```{r transform, echo = FALSE}
+#transform data by taking log
+trans = log(fire$ISI)
+
+#change  the below case or error occurs
+trans[380] = 1.2
+
+hist(trans, xlab = "Transformed ISI", col = "lightblue", main = "Histogram of ISI Transformed")
+abline(v = mean(trans), col = 'red')
+abline(v = median(trans), col = 'blue')
+
+```
+
+The response variable of ISI was originally right-skewed. To prevent a normality violation in the regressional model, the data is transformed by taking the natural log of all ISI data. A QQ-normal plot is shown below to illustrate that the residual data is normally distributed after being transformed.
+
+```{r, echo = FALSE}
+#png("qqnorm.png", units = "px", width=960, height=960)
+#use QQ plot check model
+#summary(lm(trans ~.-ISI - season_ + factor(season_) , data = fire))
+plot(lm(trans ~.-ISI - season_ + factor(season_), data = fire),2)
+#dev.off()
+```
+
+## Examining Multicolinearity
+Multicolinearity occurs when predictor variables are linearly correlated with the other. This implies that a change in any one of the predictor variables would entail a change in another highly correlated predictor variable. 
+
+Before we proceed to fit our model it is important to perform two vital checks. Firstly, there needs to be a reasonable correlation between the predictor variables and the response variable. An absence of any linear pattern does not warrant the use of a linear regression problem.
+
+``` {r, echo = FALSE}
+#removing seasons for correlation
+fire_cor <- fire[,-match(c('season_'),names(fire))]
+
+#Checking for multicolinearity. Here we will compare each of our predictor variables with all the others predictor variables. 
+corr<-cor(fire_cor)
+#plotting correlation head map
+#png("corrplot.png", units = "px", width=960, height=960)
+corrplot(corr, type = 'upper')
+#dev.off()
+```
+
+``` {r analysis, echo = FALSE, warning = FALSE, comment = FALSE, message = FALSE}
+#1. Visualizing correlations between our response variable and the predictor variable 
+# Comparing Y with all other predictor variables *(X's)
+corr1<-cor(x = fire_cor[,-4], y = trans, use="complete.obs")
+
+#png("qqnorm.png", units = "px")
+ggcorrplot(corr1)
+#dev.off()
+```
+
+
+
+The visual analysis above shows us that there are several predictor variables that possess a significant correlation strength with the response variable (transformed ISI). Furthermore we also see that there exists no significant multicolinearity between the predictor variables. In general there always lies the possibility that variables within the same domain will correlate with one another to an extent. 
+
+However to further confirm our claim, we will employ the use of the Variance Inflation Factor analysis. This analysis allows us to support / reject our claim using numerical proof. It is important to note that the lower the VIF (lowest being 1), the less multicolinearity exists in our dataset. A VIF of 5 represents industry standard acceptance rate for multicolinearity as a small value indicates that the standard deviation of the respective variable parameter will remain relatively stable when other predictor variables are added into the regression equation. 
+
+``` {r vif}
+#Calculate the Variance Inflation Factor for each of the predictor variables
+model <- lm(trans~ fire$FFMC + fire$DMC + fire$DC + fire$temp + fire$RH + fire$wind + fire$rain + fire$area + factor(fire$season_) , data = fire)
+#summary(model)
+vif(model)
+```
+
+
+Based on the data above, it further supports that there exists no significant multicolinearity in the dataset. Most of the VIF values are under 2.5 far below the industry threshold of 5.
+
+# Results
+
+After analyzing the correlation of the predictor variables in the dataset, the next steps comprise the following:  <br>
+1. Feature Selection <br>
+
+2. Model fitting using Training Data <br>
+
+3. Analysis <br>
+
+## Feature Selection 
+
+Using stepwise regression, we iterate through different possibilities of a linear model and choose one with features yileding the best (lowest) error metric.
+
+The QQ-normal plot below illustrates the distribution of our data after utilizing stepwise regression for feature selection.
+
+```{r, echo = FALSE, comment = FALSE, message = FALSE, include = FALSE}
+# forward stepwise regression
+model = lm(trans ~.-ISI - season_ + factor(season_), data = fire)
+new_model = step(model)
+```
+```{r, echo = FALSE}
+#new model QQ plot
+#png("qqnorm2.png", units = "px", width=960, height=960)
+plot(new_model, 2)
+#dev.off()
+```
+
+
+## Model Fitting
+
+A portion of the data is separated to be utilized as a training set, while the remaining portion will be utilized as a test set.This will allow the accuracy of the model to be measured. 
+
+Next, the training data is fitted to the model with the selected features. After removing features not selected from stepwise regression, the model includes `factor(season_)`,`FFMC`, `temp`, `RH`, and `wind`
+
+``` {r, echo = FALSE}
+#attaching the trans column to the main fire dataset
+fire_to_split <- cbind(fire, trans)
+
+#Get 400 random numbers
+ran <- sample(1:517, 400, replace=F)
+
+#splitting the dataset into training and testing
+train <- fire_to_split[ran,]
+
+#test data: contains data not in training data
+test = setdiff(fire_to_split, train)
+```
+``` {r, echo = FALSE}
+#fitting the model
+m = lm(train$trans ~ FFMC + temp + RH + wind - ISI - trans - season_ + factor(season_), data = train)
+#summary(m)
+```
+
+## Analysis
+
+The following conclusions are the results of our model: 
+
+- The overall P-value of the model is <2.2e-16. Being far below the indsutry standard of 5% significance level, it can be concluded that at least one of the features is useful in predicting the response variable (ISI). Therefore the null hypothesis $H_{0}$ is rejected.
+
+- The model yields an r-squared value of 0.76, indicating that it would likely be moderately useful in predicting the initial rate of spread of a fire. 
+
+## Cook's Distance
+
+After fitting the model, cook's distance  is utilized to analyze if any influential data points affect the regression line. If any exist, this  decreases the model's ability to generalize. 
+
+Based on the plot below, it can be confirmed that the training dataset one outlier point (>1). This outlier point is also influential in affecting the regression line of the model
+
+``` {r, echo = FALSE}
+#cooks distance
+cook = cooks.distance(m)   # here m is the linear mode
+
+#png("cook.png", units = "px", width=960, height=960)
+plot(cook, ylab = 'cooks dist')
+#dev.off()
+```
+
+## Testing the Model
+
+The model can be tested, and resulting mean squared error support our conclusion that the model is moderately useful. 
+
+``` {r, echo = FALSE, include = FALSE}
+sum_square_errors <- sum((test$trans - predict(m,newdata = test))^2)
+sum_square_errors
+```
+
+``` {r, echo = FALSE, include = FALSE}
+## Code archives
+
+week = function(x){
+  if(x == 'mon'){
+    return(1)
+  } else if(x == 'tue'){
+    return(2)
+  } else if(x == 'wed'){
+    return(3)
+  } else if(x == 'thu'){
+    return(4)
+  } else if(x == 'fri'){
+    return(5)
+  } else if(x == 'sat'){
+    return(6)
+  } else{
+    return(7)
+  }
+}
+
+
+#check correlation and distributions
+#pairs.panels(fire)
+
+
+#summary(lm(trans ~ month + FFMC + temp + RH + wind, data = fire))
+#displaying first 5 rows
+
+```
+
+
+<!-- An example of a floating figure using the graphicx package. -->
+<!-- Note that \label must occur AFTER (or within) \caption. -->
+<!-- For figures, \caption should occur after the \includegraphics. -->
+<!-- Note that IEEEtran v1.7 and later has special internal code that -->
+<!-- is designed to preserve the operation of \label within \caption -->
+<!-- even when the captionsoff option is in effect. However, because -->
+<!-- of issues like this, it may be the safest practice to put all your -->
+<!-- \label just after \caption rather than within \caption{}. -->
+
+<!-- Reminder: the "draftcls" or "draftclsnofoot", not "draft", class -->
+<!-- option should be used if it is desired that the figures are to be -->
+<!-- displayed while in draft mode. -->
+
+<!-- \begin{figure}[!t] -->
+<!-- \centering -->
+<!-- \includegraphics[width=2.5in]{myfigure} -->
+<!-- where an .eps filename suffix will be assumed under latex,  -->
+<!-- and a .pdf suffix will be assumed for pdflatex; or what has been declared -->
+<!-- via \DeclareGraphicsExtensions. -->
+<!-- \caption{Simulation results for the network.} -->
+<!-- \label{fig_sim} -->
+<!-- \end{figure} -->
+
+<!-- Note that the IEEE typically puts floats only at the top, even when this -->
+<!-- results in a large percentage of a column being occupied by floats. -->
+
+
+<!-- An example of a double column floating figure using two subfigures. -->
+<!-- (The subfig.sty package must be loaded for this to work.) -->
+<!-- The subfigure \label commands are set within each subfloat command, -->
+<!-- and the \label for the overall figure must come after \caption. -->
+<!-- \hfil is used as a separator to get equal spacing. -->
+<!-- Watch out that the combined width of all the subfigures on a  -->
+<!-- line do not exceed the text width or a line break will occur. -->
+
+<!-- \begin{figure*}[!t] -->
+<!-- \centering -->
+<!-- \subfloat[Case I]{\includegraphics[width=2.5in]{box}% -->
+<!-- \label{fig_first_case}} -->
+<!-- \hfil -->
+<!-- \subfloat[Case II]{\includegraphics[width=2.5in]{box}% -->
+<!-- \label{fig_second_case}} -->
+<!-- \caption{Simulation results for the network.} -->
+<!-- \label{fig_sim} -->
+<!-- \end{figure*} -->
+
+<!-- Note that often IEEE papers with subfigures do not employ subfigure -->
+<!-- captions (using the optional argument to \subfloat[]), but instead will -->
+<!-- reference/describe all of them (a), (b), etc., within the main caption. -->
+<!-- Be aware that for subfig.sty to generate the (a), (b), etc., subfigure -->
+<!-- labels, the optional argument to \subfloat must be present. If a -->
+<!-- subcaption is not desired, just leave its contents blank, -->
+<!-- e.g., \subfloat[]. -->
+
+
+<!-- An example of a floating table. Note that, for IEEE style tables, the -->
+<!-- \caption command should come BEFORE the table and, given that table -->
+<!-- captions serve much like titles, are usually capitalized except for words -->
+<!-- such as a, an, and, as, at, but, by, for, in, nor, of, on, or, the, to -->
+<!-- and up, which are usually not capitalized unless they are the first or -->
+<!-- last word of the caption. Table text will default to \footnotesize as -->
+<!-- the IEEE normally uses this smaller font for tables. -->
+<!-- The \label must come after \caption as always. -->
+
+<!-- \begin{table}[!t] -->
+<!-- % increase table row spacing, adjust to taste -->
+<!-- \renewcommand{\arraystretch}{1.3} -->
+<!-- if using array.sty, it might be a good idea to tweak the value of -->
+<!-- \extrarowheight as needed to properly center the text within the cells -->
+<!-- \caption{An Example of a Table} -->
+<!-- \label{table_example} -->
+<!-- \centering -->
+<!-- % Some packages, such as MDW tools, offer better commands for making tables -->
+<!-- % than the plain LaTeX2e tabular which is used here. -->
+<!-- \begin{tabular}{|c||c|} -->
+<!-- \hline -->
+<!-- One & Two\\ -->
+<!-- \hline -->
+<!-- Three & Four\\ -->
+<!-- \hline -->
+<!-- \end{tabular} -->
+<!-- \end{table} -->
+
+
+<!-- Note that the IEEE does not put floats in the very first column -->
+<!-- - or typically anywhere on the first page for that matter. Also, -->
+<!-- in-text middle ("here") positioning is typically not used, but it -->
+<!-- is allowed and encouraged for Computer Society conferences (but -->
+<!-- not Computer Society journals). Most IEEE journals/conferences use -->
+<!-- top floats exclusively.  -->
+<!-- Note that, LaTeX2e, unlike IEEE journals/conferences, places -->
+<!-- footnotes above bottom floats. This can be corrected via the -->
+<!-- \fnbelowfloat command of the stfloats package. -->
+
+
+Conclusion
+============
+The conclusion goes here.
+
+<!-- conference papers do not normally have an appendix -->
+
+Acknowledgment {#acknowledgment}
+==============
+
+The authors would like to thank... Dr. Zarei
+
+References
+===================
+\newpage
+
